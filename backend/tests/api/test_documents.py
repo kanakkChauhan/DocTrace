@@ -32,3 +32,24 @@ def test_create_and_retrieve_document():
     assert list_response.status_code == 200
     docs = list_response.json()
     assert len(docs) >= 1
+
+
+def test_extract_claims():
+    # 1. Create a document first
+    payload = {
+        "title": "OAuth Spec",
+        "content": "The system must support OAuth 2.0.",
+        "version": "1.0.0",
+    }
+    response = client.post("/api/v1/documents/", json=payload)
+    doc_id = response.json()["id"]
+
+    # 2. Trigger extraction
+    extract_response = client.post(f"/api/v1/documents/{doc_id}/extract")
+    assert extract_response.status_code == 200
+    claims = extract_response.json()
+
+    # 3. Verify the simulated claims are returned
+    assert len(claims) == 2
+    assert claims[0]["statement"] == "The system must support OAuth 2.0."
+    assert claims[0]["document_id"] == doc_id
