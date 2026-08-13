@@ -4,8 +4,9 @@ from uuid import uuid4
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from src.backend.domain.models import Document
+from src.backend.domain.models import Document, ExtractedClaim
 from src.backend.infrastructure.repository import document_repository
+from src.backend.services.extractor import claim_extractor
 
 router = APIRouter()
 
@@ -59,3 +60,31 @@ async def get_document(document_id: str) -> DocumentResponse:
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
     return DocumentResponse.from_domain(doc)
+
+
+class ClaimResponse(BaseModel):
+    id: str
+    document_id: str
+    statement: str
+    section: str | None
+
+    @classmethod
+    def from_domain(cls, claim: ExtractedClaim) -> "ClaimResponse":
+        return cls(
+            id=claim.id,
+            document_id=claim.document_id,
+            statement=claim.statement,
+            section=claim.section,
+        )
+
+
+@router.post(
+    "/{document_id}/extract", response_model=list[ClaimResponse], tags=["Extraction"]
+)
+async def extract_document_claims(document_id: str) -> list[ClaimResponse]:
+    doc = document_repository.get_by_id(document_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    claims = await claim_extractor.extract_claims(doc)
+    return [ClaimResponse.from_domain(c) for c in claims]

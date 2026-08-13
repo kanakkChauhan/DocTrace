@@ -35,3 +35,20 @@ export async function createDocument(payload: DocumentCreatePayload): Promise<Do
   }
   return response.json();
 }
+
+export interface ClaimResponse {
+    id: string;
+    document_id: string;
+    statement: string;
+    section: string | null;
+  }
+  
+  export async function extractClaims(documentId: string): Promise<ClaimResponse[]> {
+    const response = await fetch(`${API_BASE_URL}/documents/${documentId}/extract`, {
+      method: "POST",
+    });
+    if (!response.ok) {
+      throw new Error("Failed to extract claims");
+    }
+    return response.json();
+  }
