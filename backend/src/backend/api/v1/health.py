@@ -12,6 +12,6 @@ class HealthCheck(BaseModel):
 
 @router.get("/health", response_model=HealthCheck, tags=["System"])
 async def health_check() -> HealthCheck:
-    from src.backend.core.config import settings
+    from backend.core.config import settings
 
     return HealthCheck(status="ok", environment=settings.ENVIRONMENT, version="0.1.0")

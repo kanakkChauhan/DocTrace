@@ -1,12 +1,12 @@
 from datetime import datetime
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
-from src.backend.domain.models import Document, ExtractedClaim
-from src.backend.infrastructure.repository import document_repository
-from src.backend.services.extractor import claim_extractor
+from backend.domain.models import Document, ExtractedClaim
+from backend.infrastructure.repository import document_repository
+from backend.services.extractor import claim_extractor
 
 router = APIRouter()
 
@@ -60,6 +60,14 @@ async def get_document(document_id: str) -> DocumentResponse:
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
     return DocumentResponse.from_domain(doc)
+
+
+@router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_document(document_id: str) -> None:
+    deleted = document_repository.delete(document_id)
+
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Document not found")
 
 
 class ClaimResponse(BaseModel):

@@ -1,33 +1,68 @@
-import asyncio
-from uuid import uuid4
+import json
+import uuid
 
-from src.backend.domain.models import Document, ExtractedClaim
+from openai import AsyncOpenAI
+from pydantic import BaseModel
+
+from backend.core.config import settings
+from backend.domain.models import Document, ExtractedClaim
+
+
+class LLMClaim(BaseModel):
+    statement: str
+    section: str | None
 
 
 class ClaimExtractionService:
-    # Service to handle parsing documents and extracting testable claims.
-    # Currently using a simulated delay/response to establish the architecture.
+    # Service to parse documents and extract testable claims using Groq.
 
     async def extract_claims(self, document: Document) -> list[ExtractedClaim]:
-        # Simulate network call to an LLM
-        await asyncio.sleep(1.0)
+        if not settings.GROQ_API_KEY:
+            raise ValueError("GROQ_API_KEY is not configured in the environment.")
 
-        # Simulated extraction logic based on document content
+        # Point OpenAI SDK to Groq's free endpoint
+        client = AsyncOpenAI(
+            base_url="https://api.groq.com/openai/v1",
+            api_key=settings.GROQ_API_KEY,
+        )
+
+        prompt = (
+            f"Analyze the following technical specification and extract clear, testable requirements.\n"
+            f"Return ONLY valid JSON matching this exact structure: "
+            f'{{"claims": [{{"statement": "...", "section": "..."}}]}}\n\n'
+            f"Document Title: {document.title}\n\n"
+            f"Content:\n{document.content}"
+        )
+
+        response = await client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a technical requirements extractor. Return JSON only.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            response_format={"type": "json_object"},
+        )
+
+        raw_content = response.choices[0].message.content or "{}"
+        data = json.loads(raw_content)
+        raw_claims = data.get("claims", [])
+
         claims = [
             ExtractedClaim(
-                id=str(uuid4()),
+                id=str(uuid.uuid4()),
                 document_id=document.id,
-                statement="The system must support OAuth 2.0.",
-                section="Authentication",
-            ),
-            ExtractedClaim(
-                id=str(uuid4()),
-                document_id=document.id,
-                statement="Passwords must be at least 12 characters long.",
-                section="Security",
-            ),
+                statement=c.get("statement", ""),
+                section=c.get("section"),
+            )
+            for c in raw_claims
+            if c.get("statement")
         ]
 
         return claims
 
+
+# Singleton instance for dependency injection
 claim_extractor = ClaimExtractionService()

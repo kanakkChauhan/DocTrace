@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     # CORS Configuration
     BACKEND_CORS_ORIGINS: list[str] = []
 
+    # LLM Provider Keys
+    OPENAI_API_KEY: str | None = None
+    GROQ_API_KEY: str | None = None
+
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: str | list[str]) -> list[str] | str:

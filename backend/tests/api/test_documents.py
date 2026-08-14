@@ -38,18 +38,18 @@ def test_extract_claims():
     # 1. Create a document first
     payload = {
         "title": "OAuth Spec",
-        "content": "The system must support OAuth 2.0.",
+        "content": "The system must support OAuth 2.0. Passwords must be at least 12 characters long.",
         "version": "1.0.0",
     }
     response = client.post("/api/v1/documents/", json=payload)
     doc_id = response.json()["id"]
 
-    # 2. Trigger extraction
+    # 2. Trigger real extraction
     extract_response = client.post(f"/api/v1/documents/{doc_id}/extract")
     assert extract_response.status_code == 200
     claims = extract_response.json()
 
-    # 3. Verify the simulated claims are returned
-    assert len(claims) == 2
-    assert claims[0]["statement"] == "The system must support OAuth 2.0."
+    # 3. Verify we got a valid list of claims back from the LLM
+    assert len(claims) > 0
+    assert "statement" in claims[0]
     assert claims[0]["document_id"] == doc_id
