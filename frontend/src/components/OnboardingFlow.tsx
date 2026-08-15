@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 interface OnboardingFlowProps {
   mode: 'spec-flow' | 'github-flow';
@@ -41,12 +41,12 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ mode, onComplete
   const [displayedHeading, setDisplayedHeading] = useState('');
   const [displayedSubtitle, setDisplayedSubtitle] = useState('');
 
-  const steps = [
+  const steps = useMemo(() => [
     { num: '01', title: 'Specification Ingestion', desc: 'Parses markdown or text documents into atomic, machine-readable requirements.' },
     { num: '02', title: 'Deep AST Parsing', desc: 'Traverses your codebase abstract syntax tree to map exact functions, classes, and parameters.' },
     { num: '03', title: 'Deterministic Matching', desc: 'Cross-references semantic claims directly against code logic with confidence scoring.' },
     { num: '04', title: 'Compliance Matrix', desc: 'Generates live verification ratios and continuous verification tracking.' },
-  ];
+], []);
 
   const [displayedStepNums, setDisplayedStepNums] = useState<string[]>(['', '', '', '']);
   const [displayedStepTitles, setDisplayedStepTitles] = useState<string[]>(['', '', '', '']);
@@ -115,7 +115,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ mode, onComplete
     }, 30);
 
     return () => clearInterval(headingInterval);
-  }, []);
+}, [steps]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

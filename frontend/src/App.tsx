@@ -76,29 +76,16 @@ export default function App() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, [documents]);
 
-  useEffect(() => {
-    fetchDocuments().then((docs) => {
-      setDocuments(docs);
-      const route = getRouteFromUrl();
-      if (route.documentId) {
-        const doc = docs.find((item) => item.id === route.documentId);
-        if (doc) {
-          setSelectedDoc(doc);
-          loadCompliance(doc.id);
-          fetchTraceData(doc.id);
-        }
-      }
-    }).catch((err) => setError(err instanceof Error ? err.message : "Failed to load documents"));
-  }, []);
-
-  const loadCompliance = async (docId: string) => {
+  const loadCompliance = useCallback(async (docId: string) => {
     try {
       const metrics = await fetchComplianceMetrics(docId);
       setCompliance(metrics);
-    } catch { setCompliance(null); }
-  };
+    } catch {
+      setCompliance(null);
+    }
+  }, []);
 
-  const fetchTraceData = async (docId: string) => {
+  const fetchTraceData = useCallback(async (docId: string) => {
     try {
       // Reads back whatever was already persisted (claims + trace links).
       // Does NOT re-extract, so claim ids stay stable across reloads and
@@ -110,7 +97,26 @@ export default function App() {
       setClaims([]);
       setTraceLinks([]);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchDocuments().then((docs) => {
+      setDocuments(docs);
+      const route = getRouteFromUrl();
+
+      if (route.documentId) {
+        const doc = docs.find((item) => item.id === route.documentId);
+
+        if (doc) {
+          setSelectedDoc(doc);
+          loadCompliance(doc.id);
+          fetchTraceData(doc.id);
+        }
+      }
+    }).catch((err) =>
+      setError(err instanceof Error ? err.message : "Failed to load documents")
+    );
+  }, [loadCompliance, fetchTraceData]);
 
   const handleLaunchDemo = async () => {
     try {
