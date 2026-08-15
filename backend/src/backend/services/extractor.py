@@ -110,7 +110,7 @@ class ClaimExtractionService:
 
             # Deterministic ID based on document context and statement
             deterministic_id = hashlib.md5(
-                f"{document.id}_{llm_claim.statement}".encode("utf-8")
+                f"{document.id}_{llm_claim.statement}".encode()
             ).hexdigest()
 
             claims.append(
