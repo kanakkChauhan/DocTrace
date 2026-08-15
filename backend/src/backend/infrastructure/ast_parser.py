@@ -12,8 +12,15 @@ from backend.domain.ast_models import (
 class DocTraceASTVisitor(ast.NodeVisitor):
     """Visits AST nodes to extract structured code information."""
 
-    def __init__(self, filepath: str, module_name: str) -> None:
-        self.module = ParsedModule(name=module_name, filepath=filepath)
+    def __init__(
+        self,
+        filepath: str,
+        module_name: str,
+        module_docstring: str | None = None,
+    ) -> None:
+        self.module = ParsedModule(
+            name=module_name, filepath=filepath, docstring=module_docstring
+        )
         self.current_class: ParsedClass | None = None
 
     def visit_Import(self, node: ast.Import) -> None:
@@ -29,9 +36,11 @@ class DocTraceASTVisitor(ast.NodeVisitor):
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         docstring = ast.get_docstring(node)
+        bases = [ast.unparse(base) for base in node.bases]
         parsed_class = ParsedClass(
             name=node.name,
             location=CodeLocation(line=node.lineno, end_line=node.end_lineno),
+            bases=bases,
             docstring=docstring,
         )
         self.module.classes.append(parsed_class)
@@ -89,6 +98,9 @@ def analyze_source_code(
 ) -> ParsedModule:
     """Parses raw Python source code and returns a structured ParsedModule."""
     tree = ast.parse(source_code, filename=filepath)
-    visitor = DocTraceASTVisitor(filepath=filepath, module_name=module_name)
+    module_docstring = ast.get_docstring(tree)
+    visitor = DocTraceASTVisitor(
+        filepath=filepath, module_name=module_name, module_docstring=module_docstring
+    )
     visitor.visit(tree)
     return visitor.module

@@ -5,8 +5,9 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
 from backend.domain.models import Document, ExtractedClaim
+from backend.infrastructure.claim_repository import claim_repository
 from backend.infrastructure.repository import document_repository
-from backend.services.extractor import claim_extractor
+from backend.services.extractor import ClaimExtractionError, claim_extractor
 
 router = APIRouter()
 
@@ -90,9 +91,23 @@ class ClaimResponse(BaseModel):
     "/{document_id}/extract", response_model=list[ClaimResponse], tags=["Extraction"]
 )
 async def extract_document_claims(document_id: str) -> list[ClaimResponse]:
+    """
+    Runs claim extraction and persists the result as the document's current
+    set of requirements, replacing any claims from a previous extraction.
+    Downstream trace runs and reloads read from this persisted set, so claim
+    identity stays stable across requests instead of a fresh uuid being
+    minted on every call.
+    """
     doc = document_repository.get_by_id(document_id)
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    claims = await claim_extractor.extract_claims(doc)
+    try:
+        claims = await claim_extractor.extract_claims(doc)
+    except ClaimExtractionError as e:
+        # Missing config, provider failure, or malformed provider output --
+        # never fabricate claims here, just surface a clean, honest error.
+        raise HTTPException(status_code=503, detail=str(e)) from e
+
+    claim_repository.save_claims_for_document(document_id, claims)
     return [ClaimResponse.from_domain(c) for c in claims]

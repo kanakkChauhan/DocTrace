@@ -30,6 +30,7 @@ class ParsedFunction:
 class ParsedClass:
     name: str
     location: CodeLocation
+    bases: list[str] = field(default_factory=list)  # <--- Added inheritance tracking
     methods: list[ParsedFunction] = field(default_factory=list)
     docstring: str | None = None
 
@@ -38,6 +39,7 @@ class ParsedClass:
 class ParsedModule:
     name: str
     filepath: str
+    docstring: str | None = None  # <--- Added module docstring tracking
     classes: list[ParsedClass] = field(default_factory=list)
     functions: list[ParsedFunction] = field(default_factory=list)
     imports: list[str] = field(default_factory=list)

@@ -1,4 +1,49 @@
-# React + TypeScript + Vite
+# DocTrace Frontend
+
+React + TypeScript + Vite dashboard for DocTrace.
+
+## Setup
+
+```bash
+npm install
+npm run dev
+```
+
+The dev server runs on port `5174` and proxies `/api` requests to the
+backend at `http://127.0.0.1:8000` (see `vite.config.ts`) -- so no
+configuration is required for local development as long as the backend is
+running.
+
+## Configuration
+
+API base URL is controlled by `VITE_API_BASE_URL` (see `.env.example`).
+
+- **Local development**: leave it unset. Requests go to a relative
+  `/api/v1` path, which the Vite dev proxy forwards to the backend.
+- **Production / any deployment where the frontend and backend don't share
+  an origin**: set `VITE_API_BASE_URL` to the backend's full base URL
+  (e.g. `https://api.example.com`), with no trailing slash.
+
+```bash
+cp .env.example .env
+# edit .env if you need a non-default API base URL
+```
+
+## Build
+
+```bash
+npm run build
+```
+
+## Lint
+
+```bash
+npm run lint
+```
+
+---
+
+## React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

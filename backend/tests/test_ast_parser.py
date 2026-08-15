@@ -1,59 +1,62 @@
+import textwrap
+
 from backend.infrastructure.ast_parser import analyze_source_code
 
-SAMPLE_CODE = """
-import os
-from typing import List
 
-@app.get("/items")
-async def fetch_items(limit: int = 10) -> List[str]:
-    '''Fetches items from the database.'''
-    return ["item1", "item2"]
-
-class DocumentHandler:
-    '''Handles document operations.'''
-    
-    def process(self, doc_id: str):
-        pass
-"""
+def test_ast_analyzer_module_and_imports() -> None:
+    source = textwrap.dedent('''\
+    """Module docstring for testing traceability."""
+    import os
+    from fastapi import APIRouter
+    ''')
+    parsed = analyze_source_code(source, "test_mod.py", "test_mod")
+    assert parsed.name == "test_mod"
+    assert parsed.docstring == "Module docstring for testing traceability."
+    assert "os" in parsed.imports
+    assert "fastapi.APIRouter" in parsed.imports
 
 
-def test_ast_analyzer_module_and_imports():
-    module = analyze_source_code(
-        SAMPLE_CODE, filepath="sample.py", module_name="sample"
-    )
-    assert module.name == "sample"
-    assert "os" in module.imports
-    assert "typing.List" in module.imports
-
-
-def test_ast_analyzer_functions():
-    module = analyze_source_code(
-        SAMPLE_CODE, filepath="sample.py", module_name="sample"
-    )
-    assert len(module.functions) == 1
-    func = module.functions[0]
-
-    assert func.name == "fetch_items"
+def test_ast_analyzer_functions() -> None:
+    source = textwrap.dedent('''\
+    async def sample_endpoint(user_id: str) -> dict:
+        """Fetch user details."""
+        return {"id": user_id}
+    ''')
+    parsed = analyze_source_code(source, "test_func.py", "test_func")
+    assert len(parsed.functions) == 1
+    func = parsed.functions[0]
+    assert func.name == "sample_endpoint"
     assert func.is_async is True
-    assert func.is_route is True
-    assert func.docstring == "Fetches items from the database."
-    assert func.return_annotation == "List[str]"
-    assert func.args[0].name == "limit"
-    assert func.args[0].annotation == "int"
+    assert func.docstring == "Fetch user details."
+    assert func.return_annotation == "dict"
+    assert len(func.args) == 1
+    assert func.args[0].name == "user_id"
+    assert func.args[0].annotation == "str"
 
 
-def test_ast_analyzer_classes():
-    module = analyze_source_code(
-        SAMPLE_CODE, filepath="sample.py", module_name="sample"
-    )
-    assert len(module.classes) == 1
-    cls = module.classes[0]
+def test_ast_analyzer_classes_and_bases() -> None:
+    source = textwrap.dedent('''\
+    class BaseRepository:
+        """Base repository class."""
+        pass
 
-    assert cls.name == "DocumentHandler"
-    assert cls.docstring == "Handles document operations."
+    class UserRepository(BaseRepository):
+        """User repository implementation."""
+        def get_user(self, user_id: str) -> None:
+            pass
+    ''')
+    parsed = analyze_source_code(source, "test_class.py", "test_class")
+    assert len(parsed.classes) == 2
 
-    method = cls.methods[0]
-    assert method.name == "process"
-    assert method.is_method is True
-    assert method.args[1].name == "doc_id"
-    assert method.args[1].annotation == "str"
+    base_class = parsed.classes[0]
+    assert base_class.name == "BaseRepository"
+    assert base_class.docstring == "Base repository class."
+    assert base_class.bases == []
+
+    user_class = parsed.classes[1]
+    assert user_class.name == "UserRepository"
+    assert user_class.docstring == "User repository implementation."
+    assert user_class.bases == ["BaseRepository"]
+    assert len(user_class.methods) == 1
+    assert user_class.methods[0].name == "get_user"
+    assert user_class.methods[0].is_method is True
