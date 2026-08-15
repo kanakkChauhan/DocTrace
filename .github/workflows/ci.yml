@@ -37,7 +37,7 @@ jobs:
 
       - name: MyPy
         working-directory: backend
-        run: uv run mypy .
+        run: uv run mypy src
 
       - name: Pytest
         working-directory: backend

@@ -3,9 +3,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.backend.api.router import api_router
-from src.backend.core.config import settings
-from src.backend.core.logger import logger
+from backend.api.router import api_router
+from backend.core.config import settings
+from backend.core.logger import logger
 
 
 @asynccontextmanager
